@@ -3,8 +3,9 @@ Convolutional neural network for CIFAR10 dataset, built with PyTorch in python
 
 @author: dmholtz
 """
-
-from model import CNN3_FC2 as cnn
+architecture = 'CNN5_FC2'
+suffix = ''
+from model import CNN5_FC2 as cnn
 
 import torch
 import torch.nn as nn
@@ -129,7 +130,7 @@ criterion = nn.CrossEntropyLoss()
 # specify optimizer: stochastic gradient descent
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
         
-model.load_state_dict(torch.load('model_cifar.pt'))
+model.load_state_dict(torch.load(architecture+'/model_cifar'+suffix+'.pt'))
 
 # track test loss
 test_loss = 0.0

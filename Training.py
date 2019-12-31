@@ -4,7 +4,9 @@ Convolutional neural network for CIFAR10 dataset, built with PyTorch in python
 @author: dmholtz
 """
 
-from model import CNN3_FC2 as cnn
+# choose the model architecture here
+architecture = 'CNN5_FC2'
+from model import CNN5_FC2 as cnn
 
 import torch
 import torch.nn as nn
@@ -117,7 +119,8 @@ showSample(False)
 
 # Create a CNN according to the specification in CNN3_FC2
 model = cnn.Net()
-model.load_state_dict(torch.load('model_cifar.pt'))
+# Loads the pre-trained model to continue training process
+model.load_state_dict(torch.load(architecture+'/model_cifar.pt'))
 print(model)
 
 # move tensors to GPU if CUDA is available
@@ -191,7 +194,7 @@ for epoch in range(1, n_epochs+1):
         print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
         valid_loss_min,
         valid_loss))
-        torch.save(model.state_dict(), 'model_cifar.pt')
+        torch.save(model.state_dict(), architecture+'/model_cifar.pt')
         valid_loss_min = valid_loss
         
 
