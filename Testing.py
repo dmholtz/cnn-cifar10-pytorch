@@ -3,9 +3,9 @@ Convolutional neural network for CIFAR10 dataset, built with PyTorch in python
 
 @author: dmholtz
 """
-architecture = 'CNN5_FC2'
-suffix = ''
-from model import CNN5_FC2 as cnn
+architecture = 'CNN6_FC2'
+suffix = ' _a16'
+from model import CNN6_FC2 as cnn
 
 import torch
 import torch.nn as nn

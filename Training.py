@@ -5,8 +5,9 @@ Convolutional neural network for CIFAR10 dataset, built with PyTorch in python
 """
 
 # choose the model architecture here
-architecture = 'CNN5_FC2'
-from model import CNN5_FC2 as cnn
+architecture = 'CNN6_FC2'
+suffix = '' # don't use suffix
+from model import CNN6_FC2 as cnn
 
 import torch
 import torch.nn as nn
@@ -120,7 +121,7 @@ showSample(False)
 # Create a CNN according to the specification in CNN3_FC2
 model = cnn.Net()
 # Loads the pre-trained model to continue training process
-model.load_state_dict(torch.load(architecture+'/model_cifar.pt'))
+#model.load_state_dict(torch.load(architecture+'/model_cifar'+suffix+'.pt'))
 print(model)
 
 # move tensors to GPU if CUDA is available
