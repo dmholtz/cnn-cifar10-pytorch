@@ -1,51 +1,95 @@
 """
-Convolutional neural network for CIFAR10 dataset, built with PyTorch in python
+Trains a convolutional neural network to perform multi-class classification on
+the CIFAR10 dataset. Built with PyTorch in python.
+
+This training tool imports any neural network architectures, which is
+definded in a separate class and imported as module.
+
+The dataset is downloaded and the labeled data is split into training-
+validation- and testing data. Moreover, data augmentation is performed, which
+includes basic transformations such as horizontal flips or random rotations.
+
+While training, validation loss is logged and every improvement is saved as
+as trained model to disc.
 
 @author: dmholtz
+@version: 1.0
 """
-
-# choose the model architecture here
-architecture = 'CNN6_FC2'
-suffix = '' # don't use suffix
-from model import CNN6_FC2 as cnn
 
 import torch
 import torch.nn as nn
 import numpy as np
+from numpy import genfromtxt
 from torchvision import datasets
 import torchvision.transforms as transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 import torch.optim as optim
-
-# check if CUDA is available on this computer
-train_on_gpu = torch.cuda.is_available()
-print('Cuda available?: ', train_on_gpu)
+import Utilities as util
 
 # =============================================================================
-# Initial definition of some hyperparamters
+# Initial definition of model architecture and hyperparamters
 # =============================================================================
+
+# choose the model architecture: the module which contains the model definition
+package = 'model'
+architecture = 'CNN6_FC2'
+
+# learning rate
+learning_rate = 0.01
+# regularization parameter
+reg = 0.005
+# percentage of training set to use as validation set
+validation_set_size = 0.2
+# number of epochs to train the model
+n_epochs = 50
 
 # number of subprocesses to use for data loading
 num_workers = 0
 # how many samples per batch to load
 batch_size = 20
-# percentage of training set to use as validation set
-validation_set_size = 0.2
-# learning rate
-learning_rate = 0.01
-# number of epochs to train the model
-n_epochs = 50
+
+# show image sample before training
+showImages = True
+
+# create loss logger file names
+validationLossFile = architecture+'/validationLoss.csv'
+trainingLossFile = architecture+'/trainingLoss.csv'
+
+# =============================================================================
+# Setup and user feedback
+# =============================================================================
+
+# try to import the model architecture definition module    
+cnn = util.importModelArchitecture(package, architecture)
+
+# check if CUDA is available on this computer
+train_on_gpu = torch.cuda.is_available()
+print('Cuda available?: ' + ('Yes' if train_on_gpu else 'No'))
 
 # =============================================================================
 # Obtaining and preprocessing data
 # =============================================================================
 
-# defining transformation pipeline:
-# convert data to a normalized torch.FloatTensor
+''' 
+Data Augmentation
+
+Defines a basic transformation pipeline for data augmentation. Transformations
+may include random (horizontal) flips of pictures or small roatations.
+
+The transformation pipeline also defines that input pictures are turned into
+tensors and defines a normalization step to speed up gradient descent.
+'''
 transform = transforms.Compose([
+    # data augmentation
+    transforms.RandomHorizontalFlip(0.5),
+    transforms.RandomGrayscale(0.1),
+    transforms.RandomAffine(degrees = 8, translate = (0.08,0.08)),
+    # convert data to a normalized torch.FloatTensor
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
+
+print('Data augmentation and transformation pipeline:\n',transform)
 
 # choose and download both training and test set
 train_data = datasets.CIFAR10('data', train=True,
@@ -53,13 +97,24 @@ train_data = datasets.CIFAR10('data', train=True,
 test_data = datasets.CIFAR10('data', train=False,
                              download=True, transform=transform)
 
+pretrained_available = True
+
 # obtain training indices that will be used for validation
 # 1. get the size of the training set
 num_train = len(train_data)
-# 2. create a list enumarating all the indices in the training set
-indices = list(range(num_train))
-# 3. shuffle indices: 
-np.random.shuffle(indices)
+
+indices = None
+if pretrained_available:
+    indices = genfromtxt(architecture+'/indices.csv', delimiter = ',')
+    indices = indices.astype(int)
+    indices = list(indices)
+else:
+    # 2. create a list enumarating all the indices in the training set
+    indices = list(range(num_train))
+    # 3. shuffle indices: 
+    np.random.shuffle(indices)
+    np.savetxt(architecture+'/indices.csv', indices, delimiter=',')   
+    
 # 4. calculate the split index, which is a integer percentage of the whole
 #   training set
 splitIndex = int(validation_set_size * num_train)
@@ -78,51 +133,33 @@ valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, 
     num_workers=num_workers)
 
-# specify the image classes
-classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-           'dog', 'frog', 'horse', 'ship', 'truck']
-
 # =============================================================================
 # Visualizing a batch of trainig data
 # =============================================================================
 
-def showSample(show):
-    if show:
-        import matplotlib.pyplot as plt
-
-        # helper function to un-normalize and display an image
-        def imshow(img):
-            img = img / 2 + 0.5  # unnormalize
-            plt.imshow(np.transpose(img, (1, 2, 0)))  # convert from Tensor image
-        
-        # obtain one batch of training images
-        dataiter = iter(train_loader)
-        images, labels = dataiter.next()
-        images = images.numpy() # convert images to numpy for display
-        
-        # plot the images in the batch, along with the corresponding labels
-        fig = plt.figure(figsize=(25, 4))
-        # display 20 images
-        for idx in np.arange(20):
-            ax = fig.add_subplot(2, 20/2, idx+1, xticks=[], yticks=[])
-            imshow(images[idx])
-            ax.set_title(classes[labels[idx]])
-    
-    else:
-        print('-> No preview of a sample of training data')
-            
-# define whether a sample should be shown or not
-showSample(False)
+# optional
+if showImages:
+    util.showSample(train_loader, 10)
+else:
+    print('Start without previewing images...')
 
 # =============================================================================
 # Build up the model, define criterion optimizers
 # =============================================================================
 
-# Create a CNN according to the specification in CNN3_FC2
+# Create a CNN according to the specifications above
 model = cnn.Net()
-# Loads the pre-trained model to continue training process
-#model.load_state_dict(torch.load(architecture+'/model_cifar'+suffix+'.pt'))
 print(model)
+
+def loadPretrainedModel(loadOption):
+    if loadOption:        
+        model.load_state_dict(torch.load(architecture+'/model_cifar.pt'))
+    else:
+        print('Start training from scratch')
+    return
+
+# Loads the pre-trained model to continue training process
+loadPretrainedModel(True)
 
 # move tensors to GPU if CUDA is available
 if train_on_gpu:
@@ -132,7 +169,7 @@ if train_on_gpu:
 criterion = nn.CrossEntropyLoss()
 
 # specify optimizer: stochastic gradient descent
-optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay = reg)
 
 # =============================================================================
 # Train the model
@@ -185,18 +222,23 @@ for epoch in range(1, n_epochs+1):
     # calculate average losses
     train_loss = train_loss/len(train_loader.sampler)
     valid_loss = valid_loss/len(valid_loader.sampler)
+    
         
-    # print training/validation statistics 
-    print('Epoch: {} \tTraining Loss: {:.6f} \tValidation Loss: {:.6f}'.format(
+    # print training / validation statistics 
+    print('Epoch: {} \tTraining Loss: {:.3f} \tValidation Loss: {:.3f}'.format(
         epoch, train_loss, valid_loss))
     
     # save model if validation loss has decreased
     if valid_loss <= valid_loss_min:
-        print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
-        valid_loss_min,
-        valid_loss))
+        print('Validation loss decreased ({:.3f} --> {:.3f}).  Saving model ...'.format(
+        valid_loss_min, valid_loss))
+        
+        # save the model and a backup
+        torch.save(model.state_dict(), architecture+'/model_cifar e{}.pt'.format(epoch))
         torch.save(model.state_dict(), architecture+'/model_cifar.pt')
         valid_loss_min = valid_loss
         
-
-print ('finished so far')
+    # update loss logger
+    util.saveLossToLogfile(validationLossFile, valid_loss)
+    util.saveLossToLogfile(trainingLossFile, train_loss)
+        

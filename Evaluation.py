@@ -123,35 +123,48 @@ for data, target in test_loader:
         class_correct[label] += correct[i].item()
         class_total[label] += 1
 
-    # obtain one batch of test images
-    images, labels = data, target
-    images.numpy()
+# average test loss
+test_loss = test_loss/len(test_loader.dataset)
+print('Test Loss: {:.6f}\n'.format(test_loss))
+
+for i in range(10):
+    if class_total[i] > 0:
+        print('Test Accuracy of %5s: %2d%% (%2d/%2d)' % (
+            classes[i], 100 * class_correct[i] / class_total[i],
+            np.sum(class_correct[i]), np.sum(class_total[i])))
+    else:
+        print('Test Accuracy of %5s: N/A (no training examples)' % (classes[i]))
+
+print('\nTest Accuracy (Overall): %2d%% (%2d/%2d)' % (
+    100. * np.sum(class_correct) / np.sum(class_total),
+    np.sum(class_correct), np.sum(class_total)))
+
+# obtain one batch of test images
+dataiter = iter(test_loader)
+images, labels = dataiter.next()
+images, labels = dataiter.next()
+images.numpy()
+
+# move model inputs to cuda, if GPU available
+if train_on_gpu:
+    images = images.cuda()
     
-    # move model inputs to cuda, if GPU available
-    if train_on_gpu:
-        images = images.cuda()
-        
-    # helper function to un-normalize and display an image
-    def imshow(img):
-        img = img / 2 + 0.5  # unnormalize
-        plt.imshow(np.transpose(img, (1, 2, 0)))  # convert from Tensor image
-    
-    # get sample outputs
-    output = model(images)
-    # convert output probabilities to predicted class
-    _, preds_tensor = torch.max(output, 1)
-    preds = np.squeeze(preds_tensor.numpy()) if not train_on_gpu else np.squeeze(preds_tensor.cpu().numpy())
-    
-    # plot the images in the batch, along with predicted and true labels
-    fig = plt.figure(figsize=(25, 4))
-    for idx in np.arange(20):
-        ax = fig.add_subplot(2, 20/2, idx+1, xticks=[], yticks=[])
-        imshow(images.cpu()[idx])
-        ax.set_title("{} ({})".format(classes[preds[idx]], classes[labels[idx]]),
-                     color=("green" if preds[idx]==labels[idx].item() else "red"))
-    
-    plt.show(block = True)
-    n = input('Press enter to continue or b to break: ')
-    if n == 'b':
-        break
+# helper function to un-normalize and display an image
+def imshow(img):
+    img = img / 2 + 0.5  # unnormalize
+    plt.imshow(np.transpose(img, (1, 2, 0)))  # convert from Tensor image
+
+# get sample outputs
+output = model(images)
+# convert output probabilities to predicted class
+_, preds_tensor = torch.max(output, 1)
+preds = np.squeeze(preds_tensor.numpy()) if not train_on_gpu else np.squeeze(preds_tensor.cpu().numpy())
+
+# plot the images in the batch, along with predicted and true labels
+fig = plt.figure(figsize=(25, 4))
+for idx in np.arange(20):
+    ax = fig.add_subplot(2, 20/2, idx+1, xticks=[], yticks=[])
+    imshow(images.cpu()[idx])
+    ax.set_title("{} ({})".format(classes[preds[idx]], classes[labels[idx]]),
+                 color=("green" if preds[idx]==labels[idx].item() else "red"))
         

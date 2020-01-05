@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jan  5 19:52:49 2020
+Utilities for training and testing neural networks
 
-@author: David
+By dmholtz
 """
 import importlib
 import numpy as np
@@ -44,4 +44,11 @@ def showSample(dataloader, numberOfImages = 20):
         ax = fig.add_subplot(2, numberOfImages/2, idx+1, xticks=[], yticks=[])
         imshow(images[idx])
         ax.set_title(rsc.classes[labels[idx]])
+        
+def saveLossToLogfile(file, loss):
+    lossLogger = np.genfromtxt(file, delimiter = ',')
+    lossLogger = lossLogger.reshape(-1, 1)
+    lossLogger = list(lossLogger)
+    lossLogger.append(loss)
+    np.savetxt(file, lossLogger, delimiter = ',')
     
