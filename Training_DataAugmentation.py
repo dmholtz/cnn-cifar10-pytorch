@@ -2,8 +2,8 @@
 Trains a convolutional neural network to perform multi-class classification on
 the CIFAR10 dataset. Built with PyTorch in python.
 
-This training tool is able to import different neural network architectures,
-which are definded in a separate class and imported as module.
+This training tool imports any neural network architectures, which is
+definded in a separate class and imported as module.
 
 The dataset is downloaded and the labeled data is split into training-
 validation- and testing data. Moreover, data augmentation is performed, which
@@ -19,21 +19,25 @@ as trained model to disc.
 import torch
 import torch.nn as nn
 import numpy as np
+from numpy import genfromtxt
 from torchvision import datasets
 import torchvision.transforms as transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 import torch.optim as optim
-import importlib
+import Utilities as util
 
 # =============================================================================
 # Initial definition of model architecture and hyperparamters
 # =============================================================================
 
 # choose the model architecture: the module which contains the model definition
+package = 'model'
 architecture = 'CNN6_FC2'
 
 # learning rate
-learning_rate = 0.008
+learning_rate = 0.01
+# regularization parameter
+reg = 0.005
 # percentage of training set to use as validation set
 validation_set_size = 0.2
 # number of epochs to train the model
@@ -48,18 +52,12 @@ batch_size = 20
 # Setup and user feedback
 # =============================================================================
 
-# try to import the model architecture definition module
-try:
-    module = importlib.import_module(architecture, 'model')
-    import module as cnn # import the desired module
-    print('Successfully imported {} from package model.'.format(
-            architecture))
-except ImportError:
-    print('Importing failed.')
+# try to import the model architecture definition module    
+cnn = util.importModelArchitecture(package, architecture)
 
 # check if CUDA is available on this computer
 train_on_gpu = torch.cuda.is_available()
-print('Cuda available?: ' + 'Yes' if train_on_gpu else 'No')
+print('Cuda available?: ' + ('Yes' if train_on_gpu else 'No'))
 
 # =============================================================================
 # Obtaining and preprocessing data
@@ -77,11 +75,14 @@ tensors and defines a normalization step to speed up gradient descent.
 transform = transforms.Compose([
     # data augmentation
     transforms.RandomHorizontalFlip(0.5),
-    transforms.RandomRotation(10),
+    transforms.RandomGrayscale(0.1),
+    transforms.RandomAffine(degrees = 10, translate = (0.1,0.1)),
     # convert data to a normalized torch.FloatTensor
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
+
+print('Data augmentation and transformation pipeline:\n',transform)
 
 # choose and download both training and test set
 train_data = datasets.CIFAR10('data', train=True,
@@ -89,13 +90,27 @@ train_data = datasets.CIFAR10('data', train=True,
 test_data = datasets.CIFAR10('data', train=False,
                              download=True, transform=transform)
 
+pretrained_available = True
+
 # obtain training indices that will be used for validation
 # 1. get the size of the training set
 num_train = len(train_data)
-# 2. create a list enumarating all the indices in the training set
-indices = list(range(num_train))
-# 3. shuffle indices: 
-np.random.shuffle(indices)
+
+indices = None
+if pretrained_available:
+    indices = genfromtxt(architecture+'/indices.csv', delimiter = ',')
+    indices = indices.astype(int)
+    indices = list(indices)
+    print(indices[0:9])
+else:
+    # 2. create a list enumarating all the indices in the training set
+    indices = list(range(num_train))
+    # 3. shuffle indices: 
+    np.random.shuffle(indices)
+    np.savetxt(architecture+'/indices.csv', indices, delimiter=',')
+    
+indices = np.flip(indices)    
+    
 # 4. calculate the split index, which is a integer percentage of the whole
 #   training set
 splitIndex = int(validation_set_size * num_train)
@@ -156,15 +171,17 @@ showSample(False)
 
 # Create a CNN according to the specification in CNN3_FC2
 model = cnn.Net()
-# Loads the pre-trained model to continue training process
+print(model)
 
 def loadPretrainedModel(loadOption):
-    if loadOption:
+    if loadOption:        
         model.load_state_dict(torch.load(architecture+'/model_cifar.pt'))
     else:
-        print('Start )
-model.load_state_dict(torch.load(architecture+'/model_cifar.pt'))
-print(model)
+        print('Start training from scratch')
+    return
+
+# Loads the pre-trained model to continue training process
+loadPretrainedModel(True)
 
 # move tensors to GPU if CUDA is available
 if train_on_gpu:
@@ -174,7 +191,7 @@ if train_on_gpu:
 criterion = nn.CrossEntropyLoss()
 
 # specify optimizer: stochastic gradient descent
-optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay = reg)
 
 # =============================================================================
 # Train the model
@@ -227,6 +244,7 @@ for epoch in range(1, n_epochs+1):
     # calculate average losses
     train_loss = train_loss/len(train_loader.sampler)
     valid_loss = valid_loss/len(valid_loader.sampler)
+    
         
     # print training/validation statistics 
     print('Epoch: {} \tTraining Loss: {:.3f} \tValidation Loss: {:.3f}'.format(
@@ -237,6 +255,23 @@ for epoch in range(1, n_epochs+1):
         print('Validation loss decreased ({:.3f} --> {:.3f}).  Saving model ...'.format(
         valid_loss_min,
         valid_loss))
-        torch.save(model.state_dict(), architecture+'/model_cifar.pt'+' _a{}'.format(epoch))
+        torch.save(model.state_dict(), architecture+'/model_cifar a{}.pt'.format(epoch+48))
+        torch.save(model.state_dict(), architecture+'/model_cifar.pt')
         valid_loss_min = valid_loss
+        
+    # update loss logger
+    validationLossLogger = np.genfromtxt(
+            architecture+'/validationLoss.csv', delimiter = ',')
+    validationLossLogger = validationLossLogger.reshape(-1, 1)
+    trainingLossLogger = np.genfromtxt(
+            architecture+'/trainingLoss.csv', delimiter = ',')
+    trainingLossLogger = trainingLossLogger.reshape(-1, 1)
+    validationLossLogger = list(validationLossLogger)
+    validationLossLogger.append(valid_loss)
+    trainingLossLogger = list(trainingLossLogger)
+    trainingLossLogger.append(train_loss)
+    np.savetxt(architecture+'/validationLoss.csv',
+               validationLossLogger, delimiter = ',')
+    np.savetxt(architecture+'/trainingLoss.csv',
+               trainingLossLogger, delimiter = ',')
         

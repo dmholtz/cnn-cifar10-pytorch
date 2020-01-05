@@ -3,9 +3,9 @@ Convolutional neural network for CIFAR10 dataset, built with PyTorch in python
 
 @author: dmholtz
 """
-architecture = 'CNN6_FC2'
-suffix = ' _a16'
-from model import CNN6_FC2 as cnn
+architecture = 'CNN3_FC2'
+suffix = ''
+from model import CNN3_FC2 as cnn
 
 import torch
 import torch.nn as nn
@@ -46,71 +46,18 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-# choose and download both training and test set
-train_data = datasets.CIFAR10('data', train=True,
-                              download=True, transform=transform)
 test_data = datasets.CIFAR10('data', train=False,
                              download=True, transform=transform)
 
 # obtain training indices that will be used for validation
 # 1. get the size of the training set
-num_train = len(train_data)
-# 2. create a list enumarating all the indices in the training set
-indices = list(range(num_train))
-# 3. shuffle indices: 
-np.random.shuffle(indices)
-# 4. calculate the split index, which is a integer percentage of the whole
-#   training set
-splitIndex = int(validation_set_size * num_train)
-# 5. Separate indices of training and validation data
-train_idx, valid_idx = indices[splitIndex:], indices[:splitIndex]
 
-# define samplers for obtaining training and validation batches
-train_sampler = SubsetRandomSampler(train_idx)
-valid_sampler = SubsetRandomSampler(valid_idx)
-
-# prepare data loaders (combine dataset and sampler)
-train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
-    sampler=train_sampler, num_workers=num_workers)
-valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, 
-    sampler=valid_sampler, num_workers=num_workers)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, 
     num_workers=num_workers)
 
 # specify the image classes
 classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
            'dog', 'frog', 'horse', 'ship', 'truck']
-
-# =============================================================================
-# Visualizing a batch of trainig data
-# =============================================================================
-
-# helper function to un-normalize and display an image
-def imshow(img):
-    img = img / 2 + 0.5  # unnormalize
-    plt.imshow(np.transpose(img, (1, 2, 0)))  # convert from Tensor image
-
-def showSample(show):
-    if show:
-       
-        # obtain one batch of training images
-        dataiter = iter(train_loader)
-        images, labels = dataiter.next()
-        images = images.numpy() # convert images to numpy for display
-        
-        # plot the images in the batch, along with the corresponding labels
-        fig = plt.figure(figsize=(25, 4))
-        # display 20 images
-        for idx in np.arange(20):
-            ax = fig.add_subplot(2, 20/2, idx+1, xticks=[], yticks=[])
-            imshow(images[idx])
-            ax.set_title(classes[labels[idx]])
-    
-    else:
-        print('-> No preview of a sample of training data')
-            
-# define whether a sample should be shown or not
-showSample(False)
 
 # =============================================================================
 # Build up the model, define criterion optimizers
@@ -190,6 +137,11 @@ images.numpy()
 # move model inputs to cuda, if GPU available
 if train_on_gpu:
     images = images.cuda()
+    
+# helper function to un-normalize and display an image
+def imshow(img):
+    img = img / 2 + 0.5  # unnormalize
+    plt.imshow(np.transpose(img, (1, 2, 0)))  # convert from Tensor image
 
 # get sample outputs
 output = model(images)
