@@ -48,6 +48,9 @@ num_workers = 0
 # how many samples per batch to load
 batch_size = 20
 
+# show image sample before training
+showImages = True
+
 # =============================================================================
 # Setup and user feedback
 # =============================================================================
@@ -101,7 +104,6 @@ if pretrained_available:
     indices = genfromtxt(architecture+'/indices.csv', delimiter = ',')
     indices = indices.astype(int)
     indices = list(indices)
-    print(indices[0:9])
 else:
     # 2. create a list enumarating all the indices in the training set
     indices = list(range(num_train))
@@ -129,47 +131,21 @@ valid_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, 
     num_workers=num_workers)
 
-# specify the image classes
-classes = ['airplane', 'automobile', 'bird', 'cat', 'deer',
-           'dog', 'frog', 'horse', 'ship', 'truck']
-
 # =============================================================================
 # Visualizing a batch of trainig data
 # =============================================================================
 
-def showSample(show):
-    if show:
-        import matplotlib.pyplot as plt
-
-        # helper function to un-normalize and display an image
-        def imshow(img):
-            img = img / 2 + 0.5  # unnormalize
-            plt.imshow(np.transpose(img, (1, 2, 0)))  # convert from Tensor image
-        
-        # obtain one batch of training images
-        dataiter = iter(train_loader)
-        images, labels = dataiter.next()
-        images = images.numpy() # convert images to numpy for display
-        
-        # plot the images in the batch, along with the corresponding labels
-        fig = plt.figure(figsize=(25, 4))
-        # display 20 images
-        for idx in np.arange(20):
-            ax = fig.add_subplot(2, 20/2, idx+1, xticks=[], yticks=[])
-            imshow(images[idx])
-            ax.set_title(classes[labels[idx]])
-    
-    else:
-        print('-> No preview of a sample of training data')
-            
-# define whether a sample should be shown or not
-showSample(False)
+# optional
+if showImages:
+    util.showSample(train_loader, 10)
+else:
+    print('Start without previewing images...')
 
 # =============================================================================
 # Build up the model, define criterion optimizers
 # =============================================================================
 
-# Create a CNN according to the specification in CNN3_FC2
+# Create a CNN according to the specifications above
 model = cnn.Net()
 print(model)
 

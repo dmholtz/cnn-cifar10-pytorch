@@ -3,37 +3,53 @@ Convolutional neural network for CIFAR10 dataset, built with PyTorch in python
 
 @author: dmholtz
 """
-architecture = 'CNN3_FC2'
+
 suffix = ''
-from model import CNN3_FC2 as cnn
 
 import torch
 import torch.nn as nn
 import numpy as np
 from torchvision import datasets
 import torchvision.transforms as transforms
-from torch.utils.data.sampler import SubsetRandomSampler
 import torch.optim as optim
 import matplotlib.pyplot as plt
-
-# check if CUDA is available on this computer
-train_on_gpu = torch.cuda.is_available()
-print('Cuda available?: ', train_on_gpu)
+import Utilities as util
 
 # =============================================================================
-# Initial definition of some hyperparamters
+# Initial definition of model architecture and hyperparamters
 # =============================================================================
+
+# choose the model architecture: the module which contains the model definition
+package = 'model'
+architecture = 'CNN6_FC2'
+
+# learning rate
+learning_rate = 0.01
+# regularization parameter
+reg = 0.005
+# percentage of training set to use as validation set
+validation_set_size = 0.2
+# number of epochs to train the model
+n_epochs = 50
 
 # number of subprocesses to use for data loading
 num_workers = 0
 # how many samples per batch to load
 batch_size = 20
-# percentage of training set to use as validation set
-validation_set_size = 0.2
-# learning rate
-learning_rate = 0.01
-# number of epochs to train the model
-n_epochs = 3
+
+# show image sample before training
+showImages = True
+
+# =============================================================================
+# Setup and user feedback
+# =============================================================================
+
+# try to import the model architecture definition module    
+cnn = util.importModelArchitecture(package, architecture)
+
+# check if CUDA is available on this computer
+train_on_gpu = torch.cuda.is_available()
+print('Cuda available?: ' + ('Yes' if train_on_gpu else 'No'))
 
 # =============================================================================
 # Obtaining and preprocessing data
@@ -123,11 +139,6 @@ print('\nTest Accuracy (Overall): %2d%% (%2d/%2d)' % (
     100. * np.sum(class_correct) / np.sum(class_total),
     np.sum(class_correct), np.sum(class_total)))
 
-
-
-
-
-
 # obtain one batch of test images
 dataiter = iter(test_loader)
 images, labels = dataiter.next()
@@ -157,5 +168,3 @@ for idx in np.arange(20):
     ax.set_title("{} ({})".format(classes[preds[idx]], classes[labels[idx]]),
                  color=("green" if preds[idx]==labels[idx].item() else "red"))
         
-
-print ('finished so far')
