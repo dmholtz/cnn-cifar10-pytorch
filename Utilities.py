@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Utilities for training and testing neural networks
+Utilities for training, evaluating and testing neural networks
 
 By dmholtz
 """
