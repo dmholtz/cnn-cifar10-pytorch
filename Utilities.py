@@ -45,10 +45,28 @@ def showSample(dataloader, numberOfImages = 20):
         imshow(images[idx])
         ax.set_title(rsc.classes[labels[idx]])
         
+def showSingleImage(imageData, label='Image'):
+    # plot the images in the batch, along with the corresponding labels
+    fig = plt.figure(figsize=(25, 4))
+    # display images
+    for idx in np.arange(1):
+        ax = fig.add_subplot(1, 1, idx+1, xticks=[], yticks=[])
+        imshow(imageData[idx])
+        ax.set_title(label)
+        
+    plt.show()
+        
 def saveLossToLogfile(file, loss):
     lossLogger = np.genfromtxt(file, delimiter = ',')
     lossLogger = lossLogger.reshape(-1, 1)
     lossLogger = list(lossLogger)
     lossLogger.append(loss)
     np.savetxt(file, lossLogger, delimiter = ',')
+    
+def softmax(classScores):
+    summedScores = np.sum(np.exp(classScore) for classScore in classScores)
+    softmaxOutput = np.empty(np.shape(classScores))
+    for i, classScore in enumerate(classScores):
+        softmaxOutput[i] = float(np.exp(classScore) / summedScores)
+    return softmaxOutput
     

@@ -8,6 +8,10 @@ data/
 # C extensions
 *.so
 
+# Images
+*.jpg
+*.png
+
 # Distribution / packaging
 .Python
 build/
