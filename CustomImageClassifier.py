@@ -27,7 +27,7 @@ package = 'model'
 architecture = 'CNN6_FC2'
 
 # relative location (path+filename) of the custom image
-filename = 'images/8.jpg'
+filename = 'images/testimage.jpg'
 
 # =============================================================================
 # Setup and user feedback

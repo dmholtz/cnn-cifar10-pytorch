@@ -10,7 +10,6 @@ data/
 
 # Images
 *.jpg
-*.png
 
 # Distribution / packaging
 .Python
